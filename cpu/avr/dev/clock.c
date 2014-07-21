@@ -88,15 +88,23 @@ volatile unsigned long seconds;
 long sleepseconds;
 
 /* Set RADIOSTATS to monitor radio on time (must also be set in the radio driver) */
-#if RF230BB && AVR_WEBSERVER
-#define RADIOSTATS 1
+#if (RF230BB || RF212BB)  && AVR_WEBSERVER
+#define RADIOSTATS 0 //1
 #endif
 
 #if RADIOSTATS
 static volatile uint8_t rcount;
 volatile unsigned long radioontime;
-extern uint8_t RF230_receive_on;
+ #if RF230BB
+  extern uint8_t RF230_receive_on;
+ #endif
 #endif
+
+#if defined(RF212BB)
+#define RFxxx_radio_on extern uint8_t RF212_radio_on;
+#else
+#define RFxxx_radio_on extern uint8_t RF230_radio_on;
+#endif //RF212BB
 
 /* Set RADIO_CONF_CALIBRATE_INTERVAL for periodic calibration of the PLL during extended radio on time.
  * The RF230 data sheet suggests every 5 minutes if the temperature is fluctuating.
@@ -233,7 +241,7 @@ clock_delay_usec(uint16_t howlong)
   my_delay_loop_2(howlong);
 #endif
 }
-#if 0
+#if 1
 /*---------------------------------------------------------------------------*/
 /**
  * Legacy delay. The original clock_delay for the msp430 used a granularity
@@ -297,7 +305,7 @@ clock_adjust_ticks(clock_time_t howmany)
     howmany -= CLOCK_SECOND;
     seconds++;
     sleepseconds++;
-#if RADIOSTATS
+#if RADIOSTATS && RF230BB
     if (RF230_receive_on) radioontime += 1;
 #endif
   }
@@ -333,19 +341,17 @@ ISR(AVR_OUTPUT_COMPARE_INT)
   if(count%CLOCK_SECOND==0) {
 #endif
     seconds++;
-
-#if RADIO_CONF_CALIBRATE_INTERVAL
-   /* Force a radio PLL frequency calibration every 256 seconds */
-    if (++calibrate_interval==0) {
-      rf230_calibrate=1;
-    }
-#endif
-
   }
+#if RADIO_CONF_CALIBRATE_INTERVAL && RF230BB
+  //For RF212BB calibration is be done in the driver
+   if (++calibrate_interval==0) {
+    rf230_calibrate=1;
+  }
+#endif
 
 #if RADIOSTATS
    /* Sample radio on time. Less accurate than ENERGEST but a smaller footprint */
-  if (RF230_receive_on) {
+  if (RFxxx_receive_on) {
     if (++rcount >= CLOCK_SECOND) {
       rcount=0;
       radioontime++;
