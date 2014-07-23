@@ -13,9 +13,9 @@ ifeq ($(RF230BB),1)
   #Source for AT86RF230 barebones driver using the contiki core MAC
   include $(CONTIKI)/cpu/avr/radio/rf230bb/Makefile.rf230bb
 else ifeq ($(RF212BB),1)
-	CFLAGS                     += -DRF212BB=1
-	#Source for AT86RF212 barebones driver using the contiki core MAC
-    include $(CONTIKI)/cpu/avr/radio/rf212bb/Makefile.rf212bb
+  CFLAGS                     += -DRF230BB -DRF230_IS_212
+  #Source for AT86RF212 barebones driver using the contiki core MAC
+  include $(CONTIKI)/cpu/avr/radio/rf230bb/Makefile.rf230bb
 else
  # Source for AT86RF230
    include $(CONTIKI)/cpu/avr/radio/rf230/Makefile.rf230

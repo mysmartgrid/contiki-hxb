@@ -52,7 +52,7 @@
 #include "net/queuebuf.h"
 #include "net/netstack.h"
 #include "lib/random.h"
-#include "radio/rf212bb/rf212bb.h"
+#include "radio/rf230bb/rf230bb.h"
 
 #define DEBUG 0
 
@@ -93,7 +93,6 @@ uint16_t mac_dst_pan_id = IEEE802154_PANID;
  */
 uint16_t mac_src_pan_id = IEEE802154_PANID;
 
-extern uint8_t promiscuous_mode; //global variable for promiscuous mode
 extern uint8_t encryption_enabled; //global variable for AES encryption
 
 
@@ -131,7 +130,7 @@ encrypt_payload(frame802154_t *pf)
 	PRINTF("%08"PRIx32" %02x %04x\n", nonce.frame_cnt, nonce.key_cnt, nonce.block_cnt);
 	 for (j=0; j<blockCount; j++) {
 		 memcpy(cipher, &nonce, 16);
-		 if (rf212_cipher(cipher)) //check for errors
+		 if (rf230_cipher(cipher)) //check for errors
 			 return 1; //error
 		 //in case the packet consists of integer number of 16 byte blocks
 		 if((packetbuf_datalen()%16 == 0) || (j < blockCount - 1)) {
@@ -178,7 +177,7 @@ decrypt_payload(frame802154_t *pf)
 	PRINTF("%08"PRIx32" %02x %04x\n", nonce.frame_cnt, nonce.key_cnt, nonce.block_cnt);
 	 for (j=0; j<blockCount; j++) {
 		 memcpy(cipher, &nonce, 16);
-		 if (rf212_cipher(cipher)) //check for errors
+		 if (rf230_cipher(cipher)) //check for errors
 			 return 1;
 		 for (i=0; i<16; i++) {  // -- xor plaintext with ciphered nonce byte-by-byte
 			 ((uint8_t*)packetbuf_dataptr())[16*j+i] = cipher[i] ^ ((uint8_t*)packetbuf_dataptr())[16*j+i];
@@ -322,7 +321,7 @@ input_packet(void)
   if(frame802154_parse(packetbuf_dataptr(), len, &frame) &&
      packetbuf_hdrreduce(len - frame.payload_len)) {
     if(frame.fcf.dest_addr_mode) {
-      if(!promiscuous_mode && frame.dest_pid != mac_src_pan_id &&
+      if(frame.dest_pid != mac_src_pan_id &&
          frame.dest_pid != FRAME802154_BROADCASTPANDID) {
         /* Not broadcast or for our PAN */
         PRINTF("6MAC: for another pan %u\n", frame.dest_pid);
@@ -330,14 +329,14 @@ input_packet(void)
       }
       if(!is_broadcast_addr(frame.fcf.dest_addr_mode, frame.dest_addr)) {
         packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, (rimeaddr_t *)&frame.dest_addr);
-        if(!promiscuous_mode && !rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_node_addr)) {
+        if(!rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_node_addr)) {
           /* Not for this node */
           PRINTF("6MAC: not for us\n");
           return;
         }
       }
     }
-    if (frame.fcf.security_enabled && !promiscuous_mode)
+    if (frame.fcf.security_enabled)
     	decrypt_payload(&frame);
 
     packetbuf_set_addr(PACKETBUF_ADDR_SENDER, (rimeaddr_t *)&frame.src_addr);
@@ -374,7 +373,7 @@ init(void)
   extern void get_aes128key_from_eeprom(uint8_t*);
   uint8_t aes_key[16];
   get_aes128key_from_eeprom(aes_key);
-  rf212_key_setup(aes_key);
+  rf230_key_setup(aes_key);
   mac_dsn = random_rand() % 256;
 
   NETSTACK_RADIO.on();

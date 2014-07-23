@@ -79,6 +79,9 @@ extern uint8_t debugflowsize,debugflow[DEBUGFLOWSIZE];
 #include "at86rf230_registermap.h"
 #endif
 
+volatile int bootloader_mode = 0;
+volatile int bootloader_pkt = 0;
+
 /*============================ VARIABLES =====================================*/
 /** \brief This is a file internal variable that contains the 16 MSB of the
  *         system time.
@@ -658,7 +661,13 @@ hal_frame_read(hal_rx_frame_t *rx_frame)
         /* If crc was calculated set crc field in hal_rx_frame_t accordingly.
          * Else show the crc has passed the hardware check.
          */
+#ifdef RF230_IS_212
+        rx_frame->ed = HAL_SPI_TRANSFER(0);
+        uint8_t rx_status = HAL_SPI_TRANSFER(0);
+        rx_frame->crc = (rx_status & 0x80);
+#else
         rx_frame->crc   = true;
+#endif
 
     } else {
         /* Length test failed */
@@ -732,25 +741,25 @@ hal_frame_write(uint8_t *write_buffer, uint8_t length)
  * \param length Length of the read burst
  * \param data Pointer to buffer where data is stored.
  */
-//void
-//hal_sram_read(uint8_t address, uint8_t length, uint8_t *data)
-//{
-//    HAL_SPI_TRANSFER_OPEN();
+void
+hal_sram_read(uint8_t address, uint8_t length, uint8_t *data)
+{
+    HAL_SPI_TRANSFER_OPEN();
 
-    /*Send SRAM read command.*/
-//    HAL_SPI_TRANSFER(0x00);
+  /*Send SRAM read command.*/
+    HAL_SPI_TRANSFER(0x00);
 
-    /*Send address where to start reading.*/
-//    HAL_SPI_TRANSFER(address);
+  /*Send address where to start reading.*/
+    HAL_SPI_TRANSFER(address);
 
-    /*Upload the chosen memory area.*/
-//    do{
-//        *data++ = HAL_SPI_TRANSFER(0);
-//    } while (--length > 0);
+  /*Upload the chosen memory area.*/
+    do{
+        *data++ = HAL_SPI_TRANSFER(0);
+    } while (--length > 0);
 
-//    HAL_SPI_TRANSFER_CLOSE();
+    HAL_SPI_TRANSFER_CLOSE();
 
-//}
+}
 
 /*----------------------------------------------------------------------------*/
 /** \brief Write SRAM
@@ -762,25 +771,25 @@ hal_frame_write(uint8_t *write_buffer, uint8_t length)
  * \param length  Length of the write burst
  * \param data    Pointer to an array of bytes that should be written
  */
-//void
-//hal_sram_write(uint8_t address, uint8_t length, uint8_t *data)
-//{
-//    HAL_SPI_TRANSFER_OPEN();
+void
+hal_sram_write(uint8_t address, uint8_t length, uint8_t *data)
+{
+    HAL_SPI_TRANSFER_OPEN();
 
-    /*Send SRAM write command.*/
-//    HAL_SPI_TRANSFER(0x40);
+  /*Send SRAM write command.*/
+    HAL_SPI_TRANSFER(0x40);
 
-    /*Send address where to start writing to.*/
-//    HAL_SPI_TRANSFER(address);
+  /*Send address where to start writing to.*/
+    HAL_SPI_TRANSFER(address);
 
-    /*Upload the chosen memory area.*/
-//    do{
-//        HAL_SPI_TRANSFER(*data++);
-//    } while (--length > 0);
+  /*Upload the chosen memory area.*/
+    do{
+        HAL_SPI_TRANSFER(*data++);
+    } while (--length > 0);
 
-//    HAL_SPI_TRANSFER_CLOSE();
+    HAL_SPI_TRANSFER_CLOSE();
 
-//}
+}
 
 /*----------------------------------------------------------------------------*/
 /* This #if compile switch is used to provide a "standard" function body for the */
@@ -981,7 +990,10 @@ HAL_RF230_ISR()
 #endif
          hal_frame_read(&rxframe[rxframe_tail]);
          rxframe_tail++;if (rxframe_tail >= RF230_CONF_RX_BUFFERS) rxframe_tail=0;
-         rf230_interrupt();
+         if(bootloader_mode)
+           bootloader_pkt = 1;
+         else
+           rf230_interrupt();
 //       trx_end_callback(isr_timestamp);
 #ifdef RF230_MIN_RX_POWER
         }
@@ -1018,6 +1030,7 @@ HAL_RF230_ISR()
 #   endif /* defined(DOXYGEN) */
 
 /*----------------------------------------------------------------------------*/
+#if PLATFORM_TYPE != HEXABUS_SOCKET
 /* This #if compile switch is used to provide a "standard" function body for the */
 /* doxygen documentation. */
 #if defined(DOXYGEN)
@@ -1032,6 +1045,7 @@ HAL_TIME_ISR()
 }
 #endif
 
+#endif
 /** @} */
 /** @} */
 

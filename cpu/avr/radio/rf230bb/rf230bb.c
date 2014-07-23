@@ -209,6 +209,20 @@ uint8_t volatile rf230_pending;
 
 /* RF230 hardware delay times, from datasheet */
 typedef enum{
+#ifdef RF230_IS_212
+    TIME_TO_ENTER_P_ON               = 330, /**<  Transition time from VCC is applied to P_ON - most favorable case! */
+    TIME_P_ON_TO_TRX_OFF             = 330, /**<  Transition time from P_ON to TRX_OFF. */
+    TIME_SLEEP_TO_TRX_OFF            = 380, /**<  Transition time from SLEEP to TRX_OFF. */
+    TIME_RESET                       = 1,   /**<  Time to hold the RST pin low during reset */
+    TIME_ED_MEASUREMENT              = 400, /**<  Time it takes to do a ED measurement. */
+    TIME_CCA                         = 400, /**<  Time it takes to do a CCA. */
+    TIME_PLL_LOCK                    = 370, /**<  Maximum time it should take for the PLL to lock. */
+    TIME_FTN_TUNING                  = 25,  /**<  Maximum time it should take to do the filter tuning. */
+    TIME_NOCLK_TO_WAKE               = 6,   /**<  Transition time from *_NOCLK to being awake. */
+    TIME_CMD_FORCE_TRX_OFF           = 1,   /**<  Time it takes to execute the FORCE_TRX_OFF command. */
+    TIME_TRX_OFF_TO_PLL_ACTIVE       = 200, /**<  Transition time from TRX_OFF to: RX_ON, PLL_ON, TX_ARET_ON and RX_AACK_ON. */
+    TIME_STATE_TRANSITION_PLL_ACTIVE = 1,   /**<  Transition time from PLL active state to another. */
+#else
     TIME_TO_ENTER_P_ON               = 510, /**<  Transition time from VCC is applied to P_ON - most favorable case! */
     TIME_P_ON_TO_TRX_OFF             = 510, /**<  Transition time from P_ON to TRX_OFF. */
     TIME_SLEEP_TO_TRX_OFF            = 880, /**<  Transition time from SLEEP to TRX_OFF. */
@@ -221,6 +235,7 @@ typedef enum{
     TIME_CMD_FORCE_TRX_OFF           = 1,   /**<  Time it takes to execute the FORCE_TRX_OFF command. */
     TIME_TRX_OFF_TO_PLL_ACTIVE       = 180, /**<  Transition time from TRX_OFF to: RX_ON, PLL_ON, TX_ARET_ON and RX_AACK_ON. */
     TIME_STATE_TRANSITION_PLL_ACTIVE = 1,   /**<  Transition time from PLL active state to another. */
+#endif
 }radio_trx_timing_t;
 /*---------------------------------------------------------------------------*/
 PROCESS(rf230_process, "RF230 driver");
@@ -228,8 +243,6 @@ PROCESS(rf230_process, "RF230 driver");
 
 int rf230_on(void);
 int rf230_off(void);
-
-static int rf230_read(void *buf, unsigned short bufsize);
 
 static int rf230_prepare(const void *data, unsigned short len);
 static int rf230_transmit(unsigned short len);
@@ -583,8 +596,8 @@ off(void)
 static void
 set_txpower(uint8_t power)
 {
-  if (power > TX_PWR_17_2DBM){
-    power=TX_PWR_17_2DBM;
+  if (power > TX_PWR_MIN){
+    power=TX_PWR_MIN;
   }
   if (hal_get_slptr()) {
     DEBUGFLOW('f');
@@ -596,7 +609,9 @@ set_txpower(uint8_t power)
 }
 void rf230_setpendingbit(uint8_t value)
 {
+#ifndef RF230_IS_212
   hal_subregister_write(SR_AACK_SET_PD, value);
+#endif
 }
 #if 0
 /*----------------------------------------------------------------------------*/
@@ -726,8 +741,31 @@ rf230_init(void)
   rxframe_head=0;rxframe_tail=0;
   
   /* Do full rf230 Reset */
+#ifdef RF230_IS_212
+  // rf212 rev A has errata, see datasheet page 166
+  // 1. set input pins to the default operating values
+  hal_set_slptr_low();
+  hal_set_rst_high();
+  HAL_SS_HIGH();
+  // 2. wait for at least 400us
+  delay_us(400);
+  // 3. reset the transceiver
+  hal_set_rst_low();
+  delay_us(TIME_RESET);
+  hal_set_rst_high();
+  delay_us(26);
+  // 4. set CLKM to 1MHz
+  hal_register_write(RG_TRX_CTRL_0, 0x01);
+  // 5. force TRX_OFF
+  hal_register_write(RG_TRX_STATE, 0x03);
+  delay_us(TIME_P_ON_TO_TRX_OFF);
+
+  //disable CLKM again, don't need it here
+  hal_register_write(RG_TRX_CTRL_0, 0x00);
+#else
   hal_set_rst_low();
   hal_set_slptr_low();
+#endif
 #if 1
   /* On powerup a TIME_RESET delay is needed here, however on some other MCU reset
    * (JTAG, WDT, Brownout) the radio may be sleeping. It can enter an uncertain
@@ -751,11 +789,19 @@ rf230_init(void)
   //ATMEGA128RFA1 - version 4, ID 31
   uint8_t tvers = hal_register_read(RG_VERSION_NUM);
   uint8_t tmanu = hal_register_read(RG_MAN_ID_0);
+  uint8_t tpartnum = hal_register_read(RG_PART_NUM);
 
+#ifdef RF230_IS_212
+  if ((tvers != RF212_REVA))
+    PRINTF("rf230: Unsupported version %u\n",tvers);
+#else
   if ((tvers != RF230_REVA) && (tvers != RF230_REVB))
     PRINTF("rf230: Unsupported version %u\n",tvers);
+#endif
   if (tmanu != SUPPORTED_MANUFACTURER_ID) 
     PRINTF("rf230: Unsupported manufacturer ID %u\n",tmanu);
+  if (tpartnum != SUPPORTED_PART_NUMBER)
+    PRINTF("rf230: Unsupported part number %u\n",tpartnum);
 
   PRINTF("rf230: Version %u, ID %u\n",tvers,tmanu);
   
@@ -784,6 +830,40 @@ void rf230_warm_reset(void) {
   /* Set up number of automatic retries 0-15 (0 implies PLL_ON sends instead of the extended TX_ARET mode */
   hal_subregister_write(SR_MAX_FRAME_RETRIES, RF230_CONF_AUTORETRIES );
  
+#ifdef RF230_IS_212
+    // set OQSPK modulation with 100KB/s (802.15.4 regulation Europe)
+    hal_register_write(RG_TRX_CTRL_2, TRX_CTRL2_OQPSK_100KB);
+
+    /* 802.15.4 specific defines. These are the default values */
+    hal_subregister_write(SR_RX_SAFE_MODE, 0);
+    hal_subregister_write(SR_I_AM_COORD, 0);
+    hal_subregister_write(SR_SLOTTED_OPERATON, 0);
+    hal_subregister_write(SR_FVN_MODE, 1); // acknowledge version 1 and version 2
+    hal_subregister_write(SR_AACK_UPLD_RES_FT, 0); // block reserved frames
+    hal_subregister_write(SR_AACK_FLTR_RES_FT, 0); //no frame filter for reserved frames
+
+    /*configure listen before talk (LBT) (rf212 manual, page 88ff):
+     * CCA Mode: Do not transmit if energy detection (ED) is above threshold or
+     * 	carrier sense (CS) sensed a signal
+     * CSMA_LBT_Mode: the transceiver can either operate in 802.15.4 CSMA mode
+     * 	or in the LBT mode according to European regulations. In LBT mode the
+     * 	radio will stay in TX_ARET mode until the channel is free, so the
+     * 	MAX_CSMA_RETRIES are neglected.
+     */
+    hal_subregister_write(SR_CCA_MODE, CCA_ED_OR_CS);
+    hal_subregister_write(SR_CSMA_LBT_MODE, CCA_LBT_ENABLED);
+
+    /*set transmit power
+     * see AT86RF212 Manual Page 107 (EU2, Boost mode enabled (higher energy
+     * consumption, but also higher output power), 5dBm),
+     * maximum power that the transceiver can provide without inferring with
+     * the regulations on the 868 MHz band in Europe
+     */
+    //hal_register_write(RG_PHY_TX_PWR, RF212_TX_PWR_5DBM_BOOST_MODE|RF212_ENABLE_PA_BOOST);
+    //GH: 09.05.2011 in EMC-test used TX_PWR values
+    hal_register_write(RG_PHY_TX_PWR, 0x62);
+#endif
+
  /* Set up carrier sense/clear channel assesment parameters for extended operating mode */
   hal_subregister_write(SR_MAX_CSMA_RETRIES, 5 );//highest allowed retries
   hal_register_write(RG_CSMA_BE, 0x80);       //min backoff exponent 0, max 8 (highest allowed)
@@ -799,6 +879,9 @@ void rf230_warm_reset(void) {
   /* Receiver sensitivity. If nonzero rf231/128rfa1 saves 0.5ma in rx mode */
   /* Not implemented on rf230 but does not hurt to write to it */
 #ifdef RF230_MIN_RX_POWER
+#ifdef RF230_IS_212
+  hal_register_write(RG_RX_SYN, 0x0);
+#else
 #if RF230_MIN_RX_POWER > 84
 #warning rf231 power threshold clipped to -48dBm by hardware register
  hal_register_write(RG_RX_SYN, 0xf);
@@ -807,22 +890,27 @@ void rf230_warm_reset(void) {
 #endif
   hal_register_write(RG_RX_SYN, RF230_MIN_RX_POWER/6 + 1); //1-15 -> -90 to -48dBm
 #endif
+#endif
 
   /* CCA energy threshold = -91dB + 2*SR_CCA_ED_THRESH. Reset defaults to -77dB */
   /* Use RF230 base of -91;  RF231 base is -90 according to datasheet */
 #ifdef RF230_CONF_CCA_THRES
-#if RF230_CONF_CCA_THRES < -91
+#if RF230_CONF_CCA_THRES < -91 && !defined(RF230_IS_212) || RF230_CONF_CCA_THRES < -98
 #warning
 #warning RF230_CONF_CCA_THRES below hardware limit, setting to -91dBm
 #warning
   hal_subregister_write(SR_CCA_ED_THRES,0);  
-#elif RF230_CONF_CCA_THRES > -61
+#elif RF230_CONF_CCA_THRES > -61 && !defined(RF230_IS_212) || RF230_CONF_CCA_THRES > -67
 #warning
 #warning RF230_CONF_CCA_THRES above hardware limit, setting to -61dBm
 #warning
   hal_subregister_write(SR_CCA_ED_THRES,15);  
 #else
+#ifdef RF230_IS_212
+  hal_subregister_write(SR_CCA_ED_THRES,(RF230_CONF_CCA_THRES - 98) * 100 / 207);
+#else
   hal_subregister_write(SR_CCA_ED_THRES,(RF230_CONF_CCA_THRES+91)/2);  
+#endif
 #endif
 #endif
 
@@ -1342,7 +1430,7 @@ PROCESS_THREAD(rf230_process, ev, data)
  * As a result, PRINTF cannot be used in here.
  */
 /*---------------------------------------------------------------------------*/
-static int
+int
 rf230_read(void *buf, unsigned short bufsize)
 {
   uint8_t len,*framep;
@@ -1745,5 +1833,57 @@ void rf230_start_sneeze(void) {
     delay_us(TIME_PLL_LOCK);
  // while (hal_register_read(0x0f)!=1) {continue;}  //wait for pll lock-hangs
     hal_register_write(0x02,0x02);       //Set TRX_STATE to TX_START
+}
+#endif
+#ifdef RF230_IS_212
+/*---------------------------------------------------------------------------*/
+uint8_t rf230_generate_random_byte(void)
+{
+  uint8_t i;
+  uint8_t rnd = 0;
+
+  HAL_ENTER_CRITICAL_REGION();
+  uint8_t old_trx_state = radio_get_trx_state();
+  uint8_t old_rx_pdt_dis = hal_subregister_read(SR_RX_PDT_DIS);
+  radio_set_trx_state(RX_ON); // Random Number generator works only in basic TRX states
+  hal_subregister_write(SR_RX_PDT_DIS, 0); //also the preamble detector hast to be enabled
+
+  for (i = 0; i < 4; i++) {
+    rnd |= hal_subregister_read(SR_RND_VALUE)<<(2*i);
+  }
+
+  hal_subregister_write(SR_RX_PDT_DIS, old_rx_pdt_dis);
+  radio_set_trx_state(old_trx_state);
+  HAL_LEAVE_CRITICAL_REGION();
+  return rnd;
+}
+/*---------------------------------------------------------------------------*/
+void rf230_key_setup(uint8_t *key)
+{
+  uint8_t aes_mode = 0x10; //see 9.1.3 in rf212 manual
+  hal_sram_write(RG_AES_CTRL, 1, &aes_mode);
+  hal_sram_write(RG_AES_KEY_START, 16, key);
+}
+/*---------------------------------------------------------------------------*/
+uint8_t rf230_cipher(uint8_t *data)
+{
+  uint8_t aes_mode_dir = 0x00; //ECB mode, see 9.1.4.1 in rf212 manual and AES encryption, see 9.1.4.1 in rf212 manual
+  uint8_t aes_request = 0x80;
+  uint8_t aes_status = 0x00;
+
+  hal_sram_write(RG_AES_CTRL, 1, &aes_mode_dir);
+  hal_sram_write(RG_AES_KEY_START, 16, data);
+  hal_sram_write(RG_AES_CTRL_MIRROR, 1, &aes_request);
+
+  delay_us(24);
+  while (((aes_status & 0x01) != 0x01) && ((aes_status & 0x80) != 0x80))
+      hal_sram_read(RG_AES_STATUS, 1, &aes_status); // check for finished security operation
+  if ((aes_status & 0x80) != 0x80) {
+    hal_sram_read(RG_AES_KEY_START, 16, data); //read encrypted data
+    return 0;
+  }
+  else
+    PRINTF("rf230: cipher error\n");
+  return 1; //AES module error
 }
 #endif

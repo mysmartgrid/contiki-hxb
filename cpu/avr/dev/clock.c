@@ -88,7 +88,7 @@ volatile unsigned long seconds;
 long sleepseconds;
 
 /* Set RADIOSTATS to monitor radio on time (must also be set in the radio driver) */
-#if (RF230BB || RF212BB)  && AVR_WEBSERVER
+#if RF230BB  && AVR_WEBSERVER
 #define RADIOSTATS 0 //1
 #endif
 
@@ -99,12 +99,6 @@ volatile unsigned long radioontime;
   extern uint8_t RF230_receive_on;
  #endif
 #endif
-
-#if defined(RF212BB)
-#define RFxxx_radio_on extern uint8_t RF212_radio_on;
-#else
-#define RFxxx_radio_on extern uint8_t RF230_radio_on;
-#endif //RF212BB
 
 /* Set RADIO_CONF_CALIBRATE_INTERVAL for periodic calibration of the PLL during extended radio on time.
  * The RF230 data sheet suggests every 5 minutes if the temperature is fluctuating.
@@ -343,7 +337,7 @@ ISR(AVR_OUTPUT_COMPARE_INT)
     seconds++;
   }
 #if RADIO_CONF_CALIBRATE_INTERVAL && RF230BB
-  //For RF212BB calibration is be done in the driver
+  //For RF230BB calibration is be done in the driver
    if (++calibrate_interval==0) {
     rf230_calibrate=1;
   }
