@@ -168,41 +168,6 @@
 
 #elif RAVEN_REVISION == HEXABUS_SOCKET
 
-#if defined (__AVR_ATxmega256D3__)
-#   define SSPORT     C
-#   define SSPIN      (0x04)
-#   define SPIPORT    C
-#   define MOSIPIN    (0x05)
-#   define MISOPIN    (0x06)
-#   define SCKPIN     (0x07)
-#   define RSTPORT    A
-#   define RSTPIN     (0x06)
-#   define IRQPORT    C
-#   define IRQPIN     (0x00)
-#   define SLPTRPORT  A
-#   define SLPTRPIN   (0x07)
-//#   define TXCWPORT   B // not used
-//#   define TXCWPIN    (0x00) // not used
-//#   define USART      1 // not used
-//#   define USARTVECT  USART1_RX_vect // not used
-//#   define TICKTIMER  3 // not used
-//#   define HAS_CW_MODE // not used
-//#   define HAS_SPARE_TIMER // not used
-
-#elif defined(__AVR_ATmega2561__)
-#   define SSPORT     B
-#   define SSPIN      (0x00)
-#   define SPIPORT    B
-#   define MOSIPIN    (0x02)
-#   define MISOPIN    (0x03)
-#   define SCKPIN     (0x01)
-#   define RSTPORT    B
-#   define RSTPIN     (0x05)
-#   define IRQPORT    D
-#   define IRQPIN     (0x00)
-#   define SLPTRPORT  B
-#   define SLPTRPIN   (0x04)
-#elif defined(__AVR_ATmega1284P__)
 #   define SSPORT     B
 #   define SSPIN      (0x04)
 #   define SPIPORT    B
@@ -215,7 +180,6 @@
 #   define IRQPIN     (0x02)
 #   define SLPTRPORT  D
 #   define SLPTRPIN   (0x07)
-#endif //__AVR_ATxmega256D3__
 
 #else
 
