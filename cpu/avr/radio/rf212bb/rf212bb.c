@@ -1247,13 +1247,8 @@ int rf212_init(void)
 	hal_set_rst_high();
 	delay_us(26);
 
-#if RAVEN_REVISION == HEXABUS_USB
-	//set CLKM rate to 8 MHz, note: CLKM is clock of AT90USB1287
-	hal_register_write(RG_TRX_CTRL_0, 0x04);
-#else
 	//disable CLKM on HEXABUS_SOCKET
 	hal_register_write(RG_TRX_CTRL_0, 0x00);
-#endif
 
 	/* Force transition to TRX_OFF. */
 	hal_subregister_write(SR_TRX_CMD, CMD_FORCE_TRX_OFF);

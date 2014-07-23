@@ -79,8 +79,7 @@
 #define RAVENUSB_C  1
 #define RCB_B	    	2
 #define ZIGBIT			3
-#define HEXABUS_SOCKET	4
-#define HEXABUS_USB		5
+#define HEXABUS_SOCKET	1000
 
 #if RCB_REVISION == RCB_B
 /* 1281 rcb */
@@ -217,30 +216,6 @@
 #   define SLPTRPORT  D
 #   define SLPTRPIN   (0x07)
 #endif //__AVR_ATxmega256D3__
-
-#elif RAVEN_REVISION == HEXABUS_USB
-
-/* HEXABUS USB AT70USB1287 */
-
-#   define SSPORT     B
-#   define SSPIN      (0x00)
-#   define SPIPORT    B
-#   define SCKPIN     (0x01)
-#   define MOSIPIN    (0x02)
-#   define MISOPIN    (0x03)
-#   define RSTPORT    B
-#   define RSTPIN     (0x05)
-#   define IRQPORT    D
-#   define IRQPIN     (0x00)
-#   define SLPTRPORT  B
-#   define SLPTRPIN   (0x04)
-//#   define TXCWPORT   D //not used
-//#   define TXCWPIN    (0x03) //not used
-//#   define USART      1 // not used
-//#   define USARTVECT  USART1_RX_vect // not used
-//#   define TICKTIMER  3 // not used
-//#   define HAS_CW_MODE // not used
-//#   define HAS_SPARE_TIMER // not used
 
 #else
 
@@ -402,7 +377,7 @@
 #define HAL_ENABLE_RADIO_INTERRUPT( ) { ( EIMSK |= ( 1 << INT5 ) ) ; EICRB |= 0x0C ; PORTE &= ~(1<<PE5);  DDRE &= ~(1<<DDE5); }
 #define HAL_DISABLE_RADIO_INTERRUPT( ) ( EIMSK &= ~( 1 << INT5 ) )
 
-#elif RAVEN_REVISION == HEXABUS_SOCKET || RAVEN_REVISION == HEXABUS_USB
+#elif RAVEN_REVISION == HEXABUS_SOCKET
 //INT0 is used on the HEXABUS platform
 #if defined (__AVR_ATxmega256D3__)
 #define RADIO_VECT      PORTC_INT0_vect
@@ -425,7 +400,7 @@
 //#define HAL_ENABLE_OVERFLOW_INTERRUPT( ) ( TCC1_INTCTRLA |= TC_OVFINTLVL_HI_gc )
 //#define HAL_DISABLE_OVERFLOW_INTERRUPT( ) ( TCC1_INTCTRLA = (TCC1_INTCTRLA & ~TC1_OVFINTLVL_gm) | TC_OVFINTLVL_OFF_gc )
 //#else
-#if RAVEN_REVISION != HEXABUS_SOCKET && RAVEN_REVISION != HEXABUS_USB
+#if RAVEN_REVISION != HEXABUS_SOCKET
 #define HAL_ENABLE_OVERFLOW_INTERRUPT( ) ( TIMSK1 |= ( 1 << TOIE1 ) )
 #define HAL_DISABLE_OVERFLOW_INTERRUPT( ) ( TIMSK1 &= ~( 1 << TOIE1 ) )
 #endif
