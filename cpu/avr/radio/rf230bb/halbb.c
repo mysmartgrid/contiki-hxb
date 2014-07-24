@@ -732,29 +732,26 @@ hal_frame_write(uint8_t *write_buffer, uint8_t length)
  * \param length Length of the read burst
  * \param data Pointer to buffer where data is stored.
  */
-#if 0  //Uses 80 bytes (on Raven) omit unless needed
-void
-hal_sram_read(uint8_t address, uint8_t length, uint8_t *data)
-{
-    HAL_SPI_TRANSFER_OPEN();
+//void
+//hal_sram_read(uint8_t address, uint8_t length, uint8_t *data)
+//{
+//    HAL_SPI_TRANSFER_OPEN();
 
-    /*Send SRAM read command and address to start*/
-    HAL_SPI_TRANSFER(0x00);
-    HAL_SPI_TRANSFER(address);
+    /*Send SRAM read command.*/
+//    HAL_SPI_TRANSFER(0x00);
 
-    HAL_SPI_TRANSFER_WRITE(0);
-    HAL_SPI_TRANSFER_WAIT();
+    /*Send address where to start reading.*/
+//    HAL_SPI_TRANSFER(address);
 
     /*Upload the chosen memory area.*/
-    do{
-        *data++ = HAL_SPI_TRANSFER_READ();
-        HAL_SPI_TRANSFER_WRITE(0);
-        HAL_SPI_TRANSFER_WAIT();
-    } while (--length > 0);
+//    do{
+//        *data++ = HAL_SPI_TRANSFER(0);
+//    } while (--length > 0);
 
-    HAL_SPI_TRANSFER_CLOSE();
-}
-#endif
+//    HAL_SPI_TRANSFER_CLOSE();
+
+//}
+
 /*----------------------------------------------------------------------------*/
 /** \brief Write SRAM
  *
