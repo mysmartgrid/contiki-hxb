@@ -28,7 +28,6 @@
  *
  * This file is part of the Contiki operating system.
  *
- * $Id: uaodv-rt.c,v 1.8 2010/10/19 18:29:04 adamdunkels Exp $
  */
 
 /**
@@ -41,6 +40,7 @@
 
 #include "net/uaodv-rt.h"
 #include "contiki-net.h"
+#include <string.h>
 
 #ifndef UAODV_NUM_RT_ENTRIES
 #define UAODV_NUM_RT_ENTRIES 8

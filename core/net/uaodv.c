@@ -28,7 +28,6 @@
  *
  * This file is part of the Contiki operating system.
  *
- * $Id: uaodv.c,v 1.38 2010/10/19 18:29:04 adamdunkels Exp $
  */
 
 /**
@@ -40,6 +39,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "contiki.h"
 #include "net/uaodv-def.h"

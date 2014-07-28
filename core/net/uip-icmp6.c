@@ -46,6 +46,7 @@
 #include "net/uip-ds6.h"
 #include "net/uip-icmp6.h"
 #include "net/uip-mld.h"
+#include "contiki-default-conf.h"
 
 #define DEBUG 0
 #if DEBUG
@@ -72,6 +73,7 @@ static uip_ipaddr_t tmp_ipaddr;
 #include "rpl/rpl.h"
 #endif /* UIP_CONF_IPV6_RPL */
 
+#if UIP_CONF_IPV6
 /*---------------------------------------------------------------------------*/
 void
 uip_icmp6_echo_request_input(void)
@@ -104,7 +106,7 @@ uip_icmp6_echo_request_input(void)
 
   if(uip_ext_len > 0) {
 #if UIP_CONF_IPV6_RPL
-    if ((temp_ext_len=rpl_invert_header())) {
+    if((temp_ext_len = rpl_invert_header())) {
       /* If there were other extension headers*/
       UIP_FIRST_EXT_BUF->next = UIP_PROTO_ICMP6;
       if (uip_ext_len != temp_ext_len) {
@@ -120,7 +122,7 @@ uip_icmp6_echo_request_input(void)
               (uint8_t *)UIP_ICMP_BUF + UIP_ICMPH_LEN,
               (uip_len - UIP_IPH_LEN - temp_ext_len - UIP_ICMPH_LEN));
       }
-      uip_ext_len=temp_ext_len;
+      uip_ext_len = temp_ext_len;
     } else {
 #endif /* UIP_CONF_IPV6_RPL */
       /* If there were extension headers*/
@@ -274,3 +276,4 @@ uip_icmp6_send(uip_ipaddr_t *dest, int type, int code, int payload_len)
 /*---------------------------------------------------------------------------*/
 
 /** @} */
+#endif /* UIP_CONF_IPV6 */
