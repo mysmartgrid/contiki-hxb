@@ -352,6 +352,7 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
     p += 5;
       switch(pf->aux_hdr.security_control.key_id_mode) {
       case 0:
+      default:
         c = 0;
         break;
       case 1:
@@ -362,8 +363,6 @@ frame802154_parse(uint8_t *data, int len, frame802154_t *pf)
         break;
       case 3:
         c = 9;
-        break;
-      default:
         break;
       }
 

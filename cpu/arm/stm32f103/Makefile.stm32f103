@@ -15,22 +15,18 @@ CONTIKI_CPU=$(CONTIKI_CPU_ARM)/stm32f103
 
 ### Define the source files we have in the STM32F103 port
 
-CONTIKI_CPU_DIRS = . ../common/dbg-io ../common/usb loader
+CONTIKI_CPU_DIRS = . loader
 
 
 
-STM32F103     = clock.c debug-uart.c # interrupt-utils.c newlib-syscalls.c sys-interrupt.c rtimer-arch.c rtimer-arch-interrupt.c uip-log.c
+STM32F103     = clock.c # interrupt-utils.c newlib-syscalls.c sys-interrupt.c rtimer-arch.c rtimer-arch-interrupt.c uip-log.c
 
 # SYSAPPS = codeprop-otf.c
 # APPDIRS += $(CONTIKI)/cpu/at91sam7s/loader
 
 # ELFLOADER = elfloader-otf.c elfloader-arm.c symtab.c cfs-ram.c
 
-include $(CONTIKI_CPU_ARM_COMMON)/usb/Makefile.usb
-
-include $(CONTIKI_CPU_ARM_COMMON)/SD-card/Makefile.sdcard
-
-TARGETLIBS = random.c dbg-printf.c dbg-puts.c dbg-putchar.c dbg-sprintf.c dbg-snprintf.c strformat.c
+TARGETLIBS = random.c
 
 CONTIKI_TARGET_SOURCEFILES += $(STM32F103) $(SYSAPPS) $(ELFLOADER) \
 			$(TARGETLIBS) $(UIPDRIVERS) $(USB)
@@ -41,13 +37,13 @@ CONTIKI_SOURCEFILES        += $(CONTIKI_TARGET_SOURCEFILES)
 THREADS =
 
 ### Compiler definitions
-CC       = arm-elf-gcc
-LD       = arm-elf-ld
-AS       = arm-elf-as
-AR       = arm-elf-ar
-NM       = arm-elf-nm
-OBJCOPY  = arm-elf-objcopy
-STRIP    = arm-elf-strip
+CC       = arm-none-eabi-gcc
+LD       = arm-none-eabi-ld
+AS       = arm-none-eabi-as
+AR       = arm-none-eabi-ar
+NM       = arm-none-eabi-nm
+OBJCOPY  = arm-none-eabi-objcopy
+STRIP    = arm-none-eabi-strip
 
 XSLTPROC=xsltproc
 
@@ -129,7 +125,7 @@ CUSTOM_RULE_LINK=yes
 %.o: ${CONTIKI_TARGET}/loader/%.S
 	$(AS) -o $(notdir $(<:.S=.o)) $<
 
-%-nosyms.$(TARGET): %.co $(PROJECT_OBJECTFILES) contiki-$(TARGET).a $(STARTUP) # $(OBJECTDIR)/empty-symbols.o
+%-nosyms.$(TARGET): %.co $(PROJECT_OBJECTFILES) contiki-$(TARGET).a $(STARTUP)
 	$(CC) $(LDFLAGS) $(CFLAGS) -nostartfiles -o $@ $(filter-out %.a,$^) $(filter %.a,$^) -lc $(filter %.a,$^)
 
 

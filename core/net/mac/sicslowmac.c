@@ -51,7 +51,7 @@
 #include "net/queuebuf.h"
 #include "net/netstack.h"
 #include "lib/random.h"
-#include "radio/rf230bb/rf230bb.h"
+//#include "radio/rf230bb/rf230bb.h"
 
 #define DEBUG 0
 
@@ -109,6 +109,7 @@ is_broadcast_addr(uint8_t mode, uint8_t *addr)
 }
 
 /*---------------------------------------------------------------------------*/
+#if 0
 int
 encrypt_payload(frame802154_t *pf)
 {
@@ -195,6 +196,16 @@ decrypt_payload(frame802154_t *pf)
 		 packetbuf_set_datalen(packetbuf_datalen()- pad_len); //update payload length
 	return 0;
 }
+#else
+int encrypt_payload(void* pf)
+{
+	return 0;
+}
+int decrypt_payload(void* pf)
+{
+	return 0;
+}
+#endif
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -379,7 +390,7 @@ init(void)
   extern void get_aes128key_from_eeprom(uint8_t*);
   uint8_t aes_key[16];
   get_aes128key_from_eeprom(aes_key);
-  rf230_key_setup(aes_key);
+//  rf230_key_setup(aes_key);
   mac_dsn = random_rand() % 256;
 
   NETSTACK_RADIO.on();
