@@ -66,7 +66,17 @@ void* _sbrk(ptrdiff_t incr) {
 	char *stack = &__heap_end__;
 
 	if (heap_end + incr > stack) {
-		write(2, "Heap and stack collision", 25);
+		const char msg[] = "cannot sbrk() by ";
+		write(2, msg, sizeof(msg) - 1);
+
+		char buf[16], *ptr = buf + sizeof(buf);
+		*--ptr = ' ';
+		while (incr) {
+			*--ptr = '0' + incr % 10;
+			incr /= 10;
+		}
+		write(2, ptr, buf + sizeof(buf) - ptr);
+
 		errno = ENOMEM;
 		return (void*) -1;
 	}

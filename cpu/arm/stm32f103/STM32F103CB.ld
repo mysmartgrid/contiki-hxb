@@ -37,7 +37,7 @@ SECTIONS
 
 	.data : {
 		_data = .;
-		*(.data)
+		*(.data .data.*)
 		_edata = . ;
 		PROVIDE (edata = .);
 	} >DATA AT>CODE
