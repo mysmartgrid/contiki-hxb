@@ -2011,7 +2011,7 @@ typedef struct
 
 
 /******************  Bit definition for AFIO_MAPR register  *******************/
-#define AFIO_MAPR_SPI1 _REMAP                ((u32)0x00000001)        /* SPI1 remapping */
+#define AFIO_MAPR_SPI1_REMAP                 ((u32)0x00000001)        /* SPI1 remapping */
 #define AFIO_MAPR_I2C1_REMAP                 ((u32)0x00000002)        /* I2C1 remapping */
 #define AFIO_MAPR_USART1_REMAP               ((u32)0x00000004)        /* USART1 remapping */
 #define AFIO_MAPR_USART2_REMAP               ((u32)0x00000008)        /* USART2 remapping */
