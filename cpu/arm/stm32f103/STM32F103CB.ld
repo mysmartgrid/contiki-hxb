@@ -20,18 +20,15 @@ SECTIONS
 		KEEP(*(.fini))
 	} >CODE =0
 
-	. = ALIGN(4);
+	.ARM.exidx : {
+		*(.ARM.exidx .ARM.exidx.*)
+	} >CODE
 
 	.rodata : {
 		*(.rodata .rodata.*)
 		*(.gnu.linkonce.r.*)
 	} >CODE
 
-	.ARM.exidx : {
-		*(.ARM.exidx .ARM.exidx.*)
-	} >CODE
-
-	/* . = ALIGN(16); */
 	_etext = .;
 	PROVIDE (etext = .);
 
@@ -43,17 +40,15 @@ SECTIONS
 	} >DATA AT>CODE
 
 	/* .bss section which is used for uninitialized data */
-	. = ALIGN(4);
 	.bss : {
 		__bss_start = .;
 		__bss_start__ = .;
-		*(.bss)
+		*(.bss .bss.*)
 		*(COMMON)
 		__bss_end = .;
 		__bss_end__ = .;
 		*(.noinit)
 	} >DATA
-	. = ALIGN(4);
 
 	_end = .;
 	PROVIDE (end = .);

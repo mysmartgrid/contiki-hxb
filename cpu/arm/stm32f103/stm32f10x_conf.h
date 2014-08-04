@@ -5,6 +5,7 @@
 #define _GPIOC
 #define _GPIOD
 #define _GPIOE
+#define _GPIOF
 #define _BKP
 #define _AFIO
 #define _USART1
