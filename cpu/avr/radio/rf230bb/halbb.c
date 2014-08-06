@@ -118,7 +118,39 @@ volatile extern signed char rf230_last_rssi;
 				    HAL_SPI_TRANSFER_WAIT(),		\
 				    HAL_SPI_TRANSFER_READ() )
 
-#else /* __AVR__ */
+#elif PLATFORM_TYPE == HEXABUS_STM
+
+#include "stm32f10x_map.h"
+#include "gpio.h"
+#include "nvic.h"
+
+#define HAL_SPI_TRANSFER_OPEN()                  \
+	{                                            \
+		HAL_ENTER_CRITICAL_REGION();             \
+		HAL_SS_LOW();
+
+#define HAL_SPI_TRANSFER_WRITE(val) do { SPIPERIPH->DR = val; } while (0)
+inline void HAL_SPI_TRANSFER_WAIT()
+{
+	while (!(SPIPERIPH->SR & SPI_SR_TXE));
+	while (!(SPIPERIPH->SR & SPI_SR_RXNE));
+	while (SPIPERIPH->SR & SPI_SR_BSY);
+}
+#define HAL_SPI_TRANSFER_READ()     (SPIPERIPH->DR)
+
+#define HAL_SPI_TRANSFER_CLOSE()                    \
+		HAL_SS_HIGH();                              \
+		HAL_LEAVE_CRITICAL_REGION();                \
+	}
+
+inline uint8_t HAL_SPI_TRANSFER(uint8_t val)
+{
+	HAL_SPI_TRANSFER_WRITE(val);
+	HAL_SPI_TRANSFER_WAIT();
+	return HAL_SPI_TRANSFER_READ();
+}
+
+#else
 /*
  * Other SPI architecture (parts to core, parts to m16c6Xp 
  */
@@ -201,7 +233,35 @@ hal_init(void)
     hal_enable_trx_interrupt();
 }
 
-#else /* __AVR__ */
+#elif PLATFORM_TYPE == HEXABUS_STM
+
+void hal_init(void)
+{
+	RCC->APB2ENR |= (RCC_APB2ENR_AFIOEN
+			| RCC_APB2ENR_IOPAEN
+			| RCC_APB2ENR_IOPCEN
+			| RCC_APB2ENR_IOPFEN
+			| RCC_APB2ENR_SPI1EN);
+
+#define FWD(M, ...) M(__VA_ARGS__)
+	FWD(GPIO_CONF_OUTPUT_PORT, A, 4, PUSH_PULL, 50);
+	FWD(GPIO_CONF_OUTPUT_PORT, A, 5, ALT_PUSH_PULL, 50);
+	FWD(GPIO_CONF_INPUT_PORT, A, 6, FLOATING);
+	FWD(GPIO_CONF_OUTPUT_PORT, A, 7, ALT_PUSH_PULL, 50);
+	FWD(GPIO_CONF_INPUT_PORT, F, 0, FLOATING);
+	FWD(GPIO_CONF_OUTPUT_PORT, F, 1, PUSH_PULL, 50);
+	FWD(GPIO_CONF_OUTPUT_PORT, C, 2, PUSH_PULL, 50);
+
+	FWD(AFIO_REMAP, SPI_AFIO_MAPR, SPIREMAP);
+	SPIPERIPH->CR1 = SPI_CR1_SPE | SPI_CR1_BR_1 | SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI;
+#undef FWD
+
+	hal_enable_trx_interrupt();
+}
+
+#define HAL_RF230_ISR() void RADIO_VECT(void)
+
+#else
 
 #define HAL_RF230_ISR() M16C_INTERRUPT(M16C_INT1)
 #define HAL_TIME_ISR()  M16C_INTERRUPT(M16C_TMRB4)

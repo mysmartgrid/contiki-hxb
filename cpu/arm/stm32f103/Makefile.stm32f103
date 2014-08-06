@@ -15,7 +15,7 @@ CONTIKI_CPU=$(CONTIKI_CPU_ARM)/stm32f103
 
 ### Define the source files we have in the STM32F103 port
 
-CONTIKI_CPU_DIRS = . loader
+CONTIKI_CPU_DIRS = . loader ../../avr/radio ../../avr/radio/rf230bb
 
 
 

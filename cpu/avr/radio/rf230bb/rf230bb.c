@@ -57,6 +57,23 @@
 #include <avr/pgmspace.h>
 #elif defined(__MSP430__)
 #include <io.h>
+#elif PLATFORM_TYPE == HEXABUS_STM
+#include "stm32f10x_map.h"
+#include "gpio.h"
+#include "nvic.h"
+inline void delay_us(unsigned us)
+{
+	us *= MCK / 3 / 1000000;
+	asm volatile (
+		"1:			\n"
+		"	cmp %0, #0		\n"
+		"	beq.n 2f		\n"
+		"	sub %0, #1		\n"
+		"	b.n 1b		\n"
+		"2:"
+			: "+r"(us)
+		);
+}
 #endif
 
 #include "dev/leds.h"
@@ -165,6 +182,10 @@ struct timestamp {
 /* RS232 delays will cause 6lowpan fragment overruns! Use DEBUGFLOW instead. */
 #define DEBUG 0
 #if DEBUG
+#if PLATFORM_TYPE == HEXABUS_STM
+#define printf_P(...) printf(__VA_ARGS__)
+#define PSTR(x) x
+#endif
 #define PRINTF(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
 #define PRINTSHORT(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
 #else
@@ -1792,8 +1813,7 @@ rf230_cca(void)
   /* Don't allow interrupts! */
   /* Start the CCA, wait till done, return result */
   /* Note reading the TRX_STATUS register clears both CCA_STATUS and CCA_DONE bits */
-{ uint8_t volatile saved_sreg = SREG;
-  cli();
+  HAL_ENTER_CRITICAL_REGION();
   rf230_waitidle();
   hal_subregister_write(SR_CCA_REQUEST,1);
   delay_us(TIME_CCA);
@@ -1804,8 +1824,7 @@ rf230_cca(void)
     }
     cca=hal_register_read(RG_TRX_STATUS);
   }
-  SREG=saved_sreg;
-}
+  HAL_LEAVE_CRITICAL_REGION();
 #endif
   ENERGEST_OFF(ENERGEST_TYPE_LED_YELLOW); 
   if(radio_was_off) {

@@ -79,6 +79,7 @@
 #define IRIS			5
 #define ATMEGA128RFA1   6
 #define HEXABUS_SOCKET  1000
+#define HEXABUS_STM     1001
 
 #if PLATFORM_TYPE == RCB_B
 /* 1281 rcb */
@@ -192,6 +193,23 @@
 #   define SLPTRPORT  D
 #   define SLPTRPIN   (0x07)
 
+#elif PLATFORM_TYPE == HEXABUS_STM
+
+#   define SPIPORT    A
+#   define SPIPERIPH  SPI1
+#   define SPI_AFIO_MAPR AFIO_MAPR_SPI1_REMAP
+#   define SPIREMAP   0
+#   define SSPIN      4
+#   define MOSIPIN    7
+#   define MISOPIN    6
+#   define SCKPIN     5
+#   define RSTPORT    C
+#   define RSTPIN     2
+#   define IRQPORT    F
+#   define IRQPIN     0
+#   define SLPTRPORT  F
+#   define SLPTRPIN   1
+
 #else
 
 #error "PLATFORM_TYPE undefined in hal.h"
@@ -233,6 +251,14 @@
 #define PIN(x)         CAT(PIN,  x)
 #endif
 
+#if PLATFORM_TYPE == HEXABUS_STM
+#define CAT2(x, y)            x##y
+#define CAT(x, y)             CAT2(x, y)
+#define HAL_SET_PIN(port, pin)    CAT(GPIO, port)->BSRR = (1UL << pin)
+#define HAL_RESET_PIN(port, pin)  CAT(GPIO, port)->BSRR = ((1UL << pin) << 16)
+#define HAL_GET_OUTVAL(port, pin) CAT(GPIO, port)->ODR & (1UL << pin)
+#endif
+
 /* TODO: Move to CPU specific */
 #if defined(CONTIKI_TARGET_MULLE)
 #define CAT(x, y)      x##y.BYTE
@@ -256,6 +282,23 @@
 #define hal_set_slptr_high( ) ( TRXPR |= ( 1 << SLPTR ) )      /**< This macro pulls the SLP_TR pin high. */
 #define hal_set_slptr_low( )  ( TRXPR &= ~( 1 << SLPTR ) )     /**< This macro pulls the SLP_TR pin low. */
 #define hal_get_slptr( )      ( TRXPR & ( 1 << SLPTR ) )  /**< Read current state of the SLP_TR pin (High/Low). */
+
+#elif PLATFORM_TYPE == HEXABUS_STM
+
+#define hal_set_rst_low()    (HAL_RESET_PIN(RSTPORT, RSTPIN))
+#define hal_set_rst_high()   (HAL_SET_PIN(RSTPORT, RSTPIN))
+#define hal_set_slptr_high() (HAL_SET_PIN(SLPTRPORT, SLPTRPIN))
+#define hal_set_slptr_low()  (HAL_RESET_PIN(SLPTRPORT, SLPTRPIN))
+#define hal_get_slptr()      (HAL_GET_OUTVAL(SLPTRPORT, SLPTRPIN))
+
+#define HAL_SS_HIGH() \
+	do { \
+		HAL_SET_PIN(SSPORT, SSPIN); \
+	} while (0)
+#define HAL_SS_LOW() \
+	do { \
+		HAL_RESET_PIN(SSPORT, SSPIN); \
+	} while (0)
 
 #else
 #define SLP_TR                SLPTRPIN            /**< Pin number that corresponds to the SLP_TR pin. */
@@ -294,9 +337,10 @@
 
 /** \} */
 
-
+#if PLATFORM_TYPE != HEXABUS_STM
 #define HAL_SS_HIGH( ) (HAL_PORT_SS |= ( 1 << HAL_SS_PIN )) /**< MACRO for pulling SS high. */
 #define HAL_SS_LOW( )  (HAL_PORT_SS &= ~( 1 << HAL_SS_PIN )) /**< MACRO for pulling SS low. */
+#endif
 
 #if defined(__AVR__)
 
@@ -333,6 +377,32 @@
 /** This macro must always be used in conjunction with HAL_ENTER_CRITICAL_REGION
     so that interrupts are enabled again.*/
 #define HAL_LEAVE_CRITICAL_REGION( ) SREG = saved_sreg;}
+
+#elif PLATFORM_TYPE == HEXABUS_STM
+
+#define RADIO_VECT EXTI0_handler
+#define HAL_ENABLE_RADIO_INTERRUPT() \
+	do {                                                                         \
+		MODIFY_REG(AFIO->EXTICR[0], AFIO_EXTICR1_EXTI0, AFIO_EXTICR1_EXTI0_PF);  \
+		EXTI->RTSR |= EXTI_RTSR_TR0;                                             \
+		EXTI->IMR |= EXTI_IMR_MR0;                                               \
+		NVIC_ENABLE_INT(6);                                                      \
+		NVIC_SET_PRIORITY(6, 32);                                                \
+	} while (0)
+#define HAL_DISABLE_RADIO_INTERRUPT() \
+	do {                              \
+		EXIT->IMR &= ~EXTI_IMR_MR0;   \
+		NVIC_DISABLE_INT(6);          \
+	} while(0)
+#define HAL_ENABLE_OVERFLOW_INTERRUPT()
+#define HAL_DISABLE_OVERFLOW_INTERRUPT()
+
+#define HAL_ENTER_CRITICAL_REGION() \
+	{                               \
+		asm volatile ("cpsid i");
+#define HAL_LEAVE_CRITICAL_REGION() \
+		asm volatile ("cpsie i"); \
+	}
 
 #else /* MULLE */
 
