@@ -1,0 +1,99 @@
+# Default to STM32L1523RB
+SUBTARGET = 152RB
+CFLAGS += -D STM32L1XX_MD
+
+
+### Code common for all ARM CPUs
+
+CONTIKI_CPU_ARM=$(CONTIKI)/cpu/arm
+CONTIKI_CPU_ARM_COMMON=$(CONTIKI_CPU_ARM)/common
+
+### Define the CPU directory
+CONTIKI_CPU=$(CONTIKI_CPU_ARM)/stm32l
+
+CONTIKI_CPU_DIRS = . stlib
+
+CPU_SRC     = clock.c newlib.c watchdog.c
+
+TARGETLIBS = startup_stm32l1xx.c init_fini_stm32l1xx.S
+TARGET_STARTFILES = $(OBJECTDIR)/startup_stm32l1xx.o $(OBJECTDIR)/init_fini_stm32l1xx.o
+
+CONTIKI_TARGET_SOURCEFILES += $(CPU_SRC) $(TARGETLIBS)
+
+CONTIKI_SOURCEFILES        += $(CONTIKI_TARGET_SOURCEFILES)
+
+
+THREADS =
+
+### Compiler definitions
+CC       = arm-none-eabi-gcc
+LD       = arm-none-eabi-ld
+AS       = arm-none-eabi-as
+AR       = arm-none-eabi-ar
+NM       = arm-none-eabi-nm
+OBJCOPY  = arm-none-eabi-objcopy
+STRIP    = arm-none-eabi-strip
+
+PROJECT_OBJECTFILES += ${addprefix $(OBJECTDIR)/,$(CONTIKI_TARGET_MAIN:.c=.o)}
+
+LINKERSCRIPT = $(CONTIKI_CPU)/STM32L$(SUBTARGET).ld
+
+ARCH_FLAGS= -march=armv7-m -mthumb
+
+CFLAGSNO = -I. -I$(CONTIKI)/core -I$(CONTIKI_CPU) ${addprefix -I,$(APPDIRS)} \
+           -DWITH_UIP -DWITH_ASCII -DMCK=$(MCK) \
+           -ffunction-sections -fdata-sections \
+           -Wall $(ARCH_FLAGS) -g
+
+CFLAGS  += $(CFLAGSNO) -O -DRUN_AS_SYSTEM -DROM_RUN
+LDFLAGS += $(ARCH_FLAGS) -L $(CONTIKI_CPU) -T $(LINKERSCRIPT) -nostartfiles -Wl,--gc-sections
+
+AROPTS = rcs
+
+CDEPFLAGS = $(CFLAGS) -D __MAKING_DEPS__
+
+
+
+
+### Setup directory search path for source files
+
+CUSTOM_RULE_C_TO_OBJECTDIR_O=yes
+CUSTOM_RULE_C_TO_O=yes
+
+%.o: %.c
+	$(TRACE_CC)
+	$(Q)$(CC) $(CFLAGS) $< -c
+
+$(OBJECTDIR)/%.o: %.c | $(OBJECTDIR)
+	$(TRACE_CC)
+	$(Q)$(CC) $(CFLAGS) -c $< -o $@
+
+
+CUSTOM_RULE_S_TO_OBJECTDIR_O = yes
+%.o: %.S
+	$(TRACE_CC)
+	$(Q)$(CC) $(CFLAGS) $< -c
+
+$(OBJECTDIR)/%.o: %.S | $(OBJECTDIR)
+	$(TRACE_CC)
+	$(Q)$(CC) $(CFLAGS) $< -c  -o $@
+
+%.bin: %.$(TARGET)
+	$(OBJCOPY) -O binary $< $@
+
+
+CUSTOM_RULE_LINK=yes
+%.$(TARGET): %.co $(PROJECT_OBJECTFILES) contiki-$(TARGET).a
+	$(TRACE_LD)
+	$(Q)$(CC) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} \
+	    ${filter %.a,$^} -lc ${filter %.a,$^} -o $@
+
+
+clean: clean_cpu
+
+.PHONY: stm32test_clean
+
+clean_cpu:
+	-rm -rf $(BUILTSRCDIR)
+
+.PRECIOUS: %-nosyms.$(TARGET)
