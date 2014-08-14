@@ -58,9 +58,7 @@
 #elif defined(__MSP430__)
 #include <io.h>
 #elif PLATFORM_TYPE == HEXABUS_STM
-#include "stm32f10x_map.h"
-#include "gpio.h"
-#include "nvic.h"
+#include "stm32l1xx.h"
 inline void delay_us(unsigned us)
 {
 	us *= MCK / 3 / 1000000;

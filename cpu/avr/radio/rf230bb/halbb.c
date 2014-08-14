@@ -120,9 +120,8 @@ volatile extern signed char rf230_last_rssi;
 
 #elif PLATFORM_TYPE == HEXABUS_STM
 
-#include "stm32f10x_map.h"
-#include "gpio.h"
-#include "nvic.h"
+#include "stm32l1xx.h"
+#include "stm32l1xx_gpio.h"
 
 #define HAL_SPI_TRANSFER_OPEN()                  \
 	{                                            \
@@ -133,7 +132,6 @@ volatile extern signed char rf230_last_rssi;
 inline void HAL_SPI_TRANSFER_WAIT()
 {
 	while (!(SPIPERIPH->SR & SPI_SR_TXE));
-	while (!(SPIPERIPH->SR & SPI_SR_RXNE));
 	while (SPIPERIPH->SR & SPI_SR_BSY);
 }
 #define HAL_SPI_TRANSFER_READ()     (SPIPERIPH->DR)
@@ -237,24 +235,44 @@ hal_init(void)
 
 void hal_init(void)
 {
-	RCC->APB2ENR |= (RCC_APB2ENR_AFIOEN
-			| RCC_APB2ENR_IOPAEN
-			| RCC_APB2ENR_IOPCEN
-			| RCC_APB2ENR_IOPFEN
-			| RCC_APB2ENR_SPI1EN);
+	RCC->AHBENR |= (RCC_AHBENR_GPIOAEN | RCC_AHBENR_GPIOCEN);
+	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
 
-#define FWD(M, ...) M(__VA_ARGS__)
-	FWD(GPIO_CONF_OUTPUT_PORT, A, 4, PUSH_PULL, 50);
-	FWD(GPIO_CONF_OUTPUT_PORT, A, 5, ALT_PUSH_PULL, 50);
-	FWD(GPIO_CONF_INPUT_PORT, A, 6, FLOATING);
-	FWD(GPIO_CONF_OUTPUT_PORT, A, 7, ALT_PUSH_PULL, 50);
-	FWD(GPIO_CONF_INPUT_PORT, F, 0, FLOATING);
-	FWD(GPIO_CONF_OUTPUT_PORT, F, 1, PUSH_PULL, 50);
-	FWD(GPIO_CONF_OUTPUT_PORT, C, 2, PUSH_PULL, 50);
+#define gpio(port) CAT(GPIO, port)
+#define modify(val, bit, neg, pos) val = ((val) & ~((neg) << (bit))) | ((pos) << (bit));
 
-	FWD(AFIO_REMAP, SPI_AFIO_MAPR, SPIREMAP);
+	modify(gpio(SSPORT)->MODER,   2 * SSPIN,   GPIO_MODER_MODER0, GPIO_Mode_OUT);
+	modify(gpio(SCKPORT)->MODER,  2 * SCKPIN,  GPIO_MODER_MODER0, GPIO_Mode_AF);
+	modify(gpio(MISOPORT)->MODER, 2 * MISOPIN, GPIO_MODER_MODER0, GPIO_Mode_AF);
+	modify(gpio(MOSIPORT)->MODER, 2 * MOSIPIN, GPIO_MODER_MODER0, GPIO_Mode_AF);
+
+	modify(gpio(SSPORT)->OTYPER,   SSPIN,   GPIO_OTYPER_OT_0, GPIO_OType_PP);
+	modify(gpio(SCKPORT)->OTYPER,  SCKPIN,  GPIO_OTYPER_OT_0, GPIO_OType_PP);
+	modify(gpio(MOSIPORT)->OTYPER, MOSIPIN, GPIO_OTYPER_OT_0, GPIO_OType_PP);
+
+	modify(gpio(SSPORT)->OSPEEDR,   2 * SSPIN,   GPIO_OSPEEDER_OSPEEDR0, GPIO_Speed_40MHz);
+	modify(gpio(SCKPORT)->OSPEEDR,  2 * SCKPIN,  GPIO_OSPEEDER_OSPEEDR0, GPIO_Speed_40MHz);
+	modify(gpio(MOSIPORT)->OSPEEDR, 2 * MOSIPIN, GPIO_OSPEEDER_OSPEEDR0, GPIO_Speed_40MHz);
+
+	modify(gpio(SCKPORT)->AFR[SCKPIN / 8],   4 * (SCKPIN % 8),  GPIO_AFRL_AFRL0, GPIO_AF_SPI1);
+	modify(gpio(MISOPORT)->AFR[MISOPIN / 8], 4 * (MISOPIN % 8), GPIO_AFRL_AFRL0, GPIO_AF_SPI1);
+	modify(gpio(MOSIPORT)->AFR[MOSIPIN / 8], 4 * (MOSIPIN % 8), GPIO_AFRL_AFRL0, GPIO_AF_SPI1);
+
+	modify(gpio(IRQPORT)->MODER,   2 * IRQPIN,   GPIO_MODER_MODER0, GPIO_Mode_IN);
+	modify(gpio(RSTPORT)->MODER,   2 * RSTPIN,   GPIO_MODER_MODER0, GPIO_Mode_OUT);
+	modify(gpio(SLPTRPORT)->MODER, 2 * SLPTRPIN, GPIO_MODER_MODER0, GPIO_Mode_OUT);
+
+	modify(gpio(IRQPORT)->OSPEEDR,   2 * IRQPIN,   GPIO_OSPEEDER_OSPEEDR0, GPIO_Speed_40MHz);
+	modify(gpio(RSTPORT)->OSPEEDR,   2 * RSTPIN,   GPIO_OSPEEDER_OSPEEDR0, GPIO_Speed_40MHz);
+	modify(gpio(SLPTRPORT)->OSPEEDR, 2 * SLPTRPIN, GPIO_OSPEEDER_OSPEEDR0, GPIO_Speed_40MHz);
+
+	modify(gpio(RSTPORT)->OTYPER,   RSTPIN,   GPIO_OTYPER_OT_0, GPIO_OType_PP);
+	modify(gpio(SLPTRPORT)->OTYPER, SLPTRPIN, GPIO_OTYPER_OT_0, GPIO_OType_PP);
+
+#undef modify
+#undef gpio
+
 	SPIPERIPH->CR1 = SPI_CR1_SPE | SPI_CR1_BR_1 | SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI;
-#undef FWD
 
 	hal_enable_trx_interrupt();
 }

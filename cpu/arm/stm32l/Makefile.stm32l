@@ -11,7 +11,7 @@ CONTIKI_CPU_ARM_COMMON=$(CONTIKI_CPU_ARM)/common
 ### Define the CPU directory
 CONTIKI_CPU=$(CONTIKI_CPU_ARM)/stm32l
 
-CONTIKI_CPU_DIRS = . stlib
+CONTIKI_CPU_DIRS = .
 
 CPU_SRC     = clock.c newlib.c watchdog.c
 
@@ -86,7 +86,7 @@ CUSTOM_RULE_LINK=yes
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) contiki-$(TARGET).a
 	$(TRACE_LD)
 	$(Q)$(CC) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} \
-	    ${filter %.a,$^} -lc ${filter %.a,$^} -o $@
+	    ${filter %.a,$^} -lc -lm ${filter %.a,$^} -o $@
 
 
 clean: clean_cpu

@@ -197,18 +197,17 @@
 
 #   define SPIPORT    A
 #   define SPIPERIPH  SPI1
-#   define SPI_AFIO_MAPR AFIO_MAPR_SPI1_REMAP
-#   define SPIREMAP   0
-#   define SSPIN      4
-#   define MOSIPIN    7
-#   define MISOPIN    6
+#   define SSPIN      1
+#   define MOSIPIN    12
+#   define MISOPIN    11
 #   define SCKPIN     5
 #   define RSTPORT    C
-#   define RSTPIN     2
-#   define IRQPORT    F
-#   define IRQPIN     0
-#   define SLPTRPORT  F
-#   define SLPTRPIN   1
+#   define RSTPIN     1
+#   define IRQPORT    C
+#   define IRQPIN     3
+#   define SLPTRPORT  C
+#   define SLPTRPIN   2
+#   define IRQNUM     9
 
 #else
 
@@ -254,8 +253,8 @@
 #if PLATFORM_TYPE == HEXABUS_STM
 #define CAT2(x, y)            x##y
 #define CAT(x, y)             CAT2(x, y)
-#define HAL_SET_PIN(port, pin)    CAT(GPIO, port)->BSRR = (1UL << pin)
-#define HAL_RESET_PIN(port, pin)  CAT(GPIO, port)->BSRR = ((1UL << pin) << 16)
+#define HAL_SET_PIN(port, pin)    CAT(GPIO, port)->ODR |= (1UL << pin)
+#define HAL_RESET_PIN(port, pin)  CAT(GPIO, port)->ODR &= ~(1UL << pin)
 #define HAL_GET_OUTVAL(port, pin) CAT(GPIO, port)->ODR & (1UL << pin)
 #endif
 
@@ -383,16 +382,16 @@
 #define RADIO_VECT EXTI0_handler
 #define HAL_ENABLE_RADIO_INTERRUPT() \
 	do {                                                                         \
-		MODIFY_REG(AFIO->EXTICR[0], AFIO_EXTICR1_EXTI0, AFIO_EXTICR1_EXTI0_PF);  \
-		EXTI->RTSR |= EXTI_RTSR_TR0;                                             \
-		EXTI->IMR |= EXTI_IMR_MR0;                                               \
-		NVIC_ENABLE_INT(6);                                                      \
-		NVIC_SET_PRIORITY(6, 32);                                                \
+		EXTI->IMR |= EXTI_IMR_MR0 << IRQPIN;                                     \
+		EXTI->RTSR |= EXTI_RTSR_TR0 << IRQPIN;                                   \
+		EXTI->IMR |= EXTI_IMR_MR0 << IRQPIN;                                     \
+		NVIC_EnableIRQ(IRQNUM);                                                  \
+		NVIC_SetPriority(IRQNUM, 32);                                            \
 	} while (0)
-#define HAL_DISABLE_RADIO_INTERRUPT() \
-	do {                              \
-		EXIT->IMR &= ~EXTI_IMR_MR0;   \
-		NVIC_DISABLE_INT(6);          \
+#define HAL_DISABLE_RADIO_INTERRUPT()             \
+	do {                                          \
+		EXIT->IMR &= ~(EXTI_IMR_MR0 << IRQPIN);   \
+		NVIC_DISABLE_INT(IRQNUM);                 \
 	} while(0)
 #define HAL_ENABLE_OVERFLOW_INTERRUPT()
 #define HAL_DISABLE_OVERFLOW_INTERRUPT()
