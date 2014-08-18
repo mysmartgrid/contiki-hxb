@@ -13,9 +13,9 @@ CONTIKI_CPU=$(CONTIKI_CPU_ARM)/stm32l
 
 CONTIKI_CPU_DIRS = .
 
-CPU_SRC     = clock.c newlib.c watchdog.c
+CPU_SRC     = clock.c newlib.c watchdog.c startup_stm32l1xx.c init_fini_stm32l1xx.S
 
-TARGETLIBS = startup_stm32l1xx.c init_fini_stm32l1xx.S
+TARGETLIBS = leds.c
 TARGET_STARTFILES = $(OBJECTDIR)/startup_stm32l1xx.o $(OBJECTDIR)/init_fini_stm32l1xx.o
 
 CONTIKI_TARGET_SOURCEFILES += $(CPU_SRC) $(TARGETLIBS)
