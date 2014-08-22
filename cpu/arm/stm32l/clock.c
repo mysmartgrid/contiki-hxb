@@ -39,3 +39,11 @@ unsigned long clock_seconds(void)
 {
 	return current_seconds;
 }
+
+void clock_wait(clock_time_t t)
+{
+	while (t--) {
+		clock_time_t cur = clock_time();
+		while (cur == clock_time());
+	}
+}
