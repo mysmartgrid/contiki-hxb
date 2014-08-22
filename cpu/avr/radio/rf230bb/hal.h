@@ -203,11 +203,13 @@
 #   define SCKPIN     5
 #   define RSTPORT    C
 #   define RSTPIN     1
-#   define IRQPORT    C
-#   define IRQPIN     3
 #   define SLPTRPORT  C
 #   define SLPTRPIN   2
 #   define IRQNUM     9
+#   define IRQPORT    C
+#   define IRQEXTIL   2
+#   define IRQPIN     3
+#   define RADIO_VECT EXTI3_IRQHandler
 
 #else
 
@@ -379,20 +381,22 @@
 
 #elif PLATFORM_TYPE == HEXABUS_STM
 
-#define RADIO_VECT EXTI0_handler
 #define HAL_ENABLE_RADIO_INTERRUPT() \
 	do {                                                                         \
 		EXTI->IMR |= EXTI_IMR_MR0 << IRQPIN;                                     \
 		EXTI->RTSR |= EXTI_RTSR_TR0 << IRQPIN;                                   \
-		EXTI->IMR |= EXTI_IMR_MR0 << IRQPIN;                                     \
 		NVIC_EnableIRQ(IRQNUM);                                                  \
 		NVIC_SetPriority(IRQNUM, 32);                                            \
 	} while (0)
 #define HAL_DISABLE_RADIO_INTERRUPT()             \
 	do {                                          \
-		EXIT->IMR &= ~(EXTI_IMR_MR0 << IRQPIN);   \
-		NVIC_DISABLE_INT(IRQNUM);                 \
+		EXTI->IMR &= ~(EXTI_IMR_MR0 << IRQPIN);   \
+		NVIC_DisableIRQ(IRQNUM);                 \
 	} while(0)
+#define HAL_CLEAR_RADIO_INTERRUPT() \
+	do {                            \
+		EXTI->PR = 1 << IRQPIN;    \
+	} while (0)
 #define HAL_ENABLE_OVERFLOW_INTERRUPT()
 #define HAL_DISABLE_OVERFLOW_INTERRUPT()
 

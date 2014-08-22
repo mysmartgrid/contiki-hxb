@@ -236,7 +236,7 @@ hal_init(void)
 void hal_init(void)
 {
 	RCC->AHBENR |= (RCC_AHBENR_GPIOAEN | RCC_AHBENR_GPIOCEN);
-	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN | RCC_APB2ENR_SYSCFGEN;
 
 #define gpio(port) CAT(GPIO, port)
 #define modify(val, bit, neg, pos) val = ((val) & ~((neg) << (bit))) | ((pos) << (bit));
@@ -262,12 +262,13 @@ void hal_init(void)
 	modify(gpio(RSTPORT)->MODER,   2 * RSTPIN,   GPIO_MODER_MODER0, GPIO_Mode_OUT);
 	modify(gpio(SLPTRPORT)->MODER, 2 * SLPTRPIN, GPIO_MODER_MODER0, GPIO_Mode_OUT);
 
-	modify(gpio(IRQPORT)->OSPEEDR,   2 * IRQPIN,   GPIO_OSPEEDER_OSPEEDR0, GPIO_Speed_40MHz);
 	modify(gpio(RSTPORT)->OSPEEDR,   2 * RSTPIN,   GPIO_OSPEEDER_OSPEEDR0, GPIO_Speed_40MHz);
 	modify(gpio(SLPTRPORT)->OSPEEDR, 2 * SLPTRPIN, GPIO_OSPEEDER_OSPEEDR0, GPIO_Speed_40MHz);
 
 	modify(gpio(RSTPORT)->OTYPER,   RSTPIN,   GPIO_OTYPER_OT_0, GPIO_OType_PP);
 	modify(gpio(SLPTRPORT)->OTYPER, SLPTRPIN, GPIO_OTYPER_OT_0, GPIO_OType_PP);
+
+	modify(SYSCFG->EXTICR[IRQPIN / 4], 4 * (IRQPIN % 4), 0xf, IRQEXTIL);
 
 #undef modify
 #undef gpio
@@ -806,16 +807,17 @@ HAL_RF230_ISR()
 
     INTERRUPTDEBUG(1);
 
-    
+#ifdef HAL_CLEAR_RADIO_INTERRUPT
+	HAL_CLEAR_RADIO_INTERRUPT();
+#endif
+
     /* Using SPI bus from ISR is generally a bad idea... */
     /* Note: all IRQ are not always automatically disabled when running in ISR */
     HAL_SPI_TRANSFER_OPEN();
 
     /*Read Interrupt source.*/
     /*Send Register address and read register content.*/
-    HAL_SPI_TRANSFER_WRITE(0x80 | RG_IRQ_STATUS);
-
-    HAL_SPI_TRANSFER_WAIT(); /* AFTER possible interleaved processing */
+    HAL_SPI_TRANSFER(0x80 | RG_IRQ_STATUS);
 
     interrupt_source = HAL_SPI_TRANSFER(0);
 
