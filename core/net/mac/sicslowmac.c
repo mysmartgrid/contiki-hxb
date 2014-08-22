@@ -109,7 +109,6 @@ is_broadcast_addr(uint8_t mode, uint8_t *addr)
 }
 
 /*---------------------------------------------------------------------------*/
-#if 1
 int
 encrypt_payload(frame802154_t *pf)
 {
@@ -196,16 +195,6 @@ decrypt_payload(frame802154_t *pf)
 		 packetbuf_set_datalen(packetbuf_datalen()- pad_len); //update payload length
 	return 0;
 }
-#else
-int encrypt_payload(void* pf)
-{
-	return 0;
-}
-int decrypt_payload(void* pf)
-{
-	return 0;
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 static void

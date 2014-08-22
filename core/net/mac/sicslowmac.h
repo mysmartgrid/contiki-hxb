@@ -55,7 +55,7 @@ typedef struct {
   uint32_t  frame_cnt;
   uint8_t	key_cnt;
   uint16_t	block_cnt;
-} nonce_802154_t;
+} __attribute__((packed)) nonce_802154_t;
 
 extern const struct rdc_driver sicslowmac_driver;
 
