@@ -27,7 +27,7 @@ void SysTick_Handler(void)
 
 void clock_init()
 {
-	SysTick_Config(MCK / CLOCK_SECOND + 1);
+	SysTick_Config(MCK / CLOCK_SECOND);
 }
 
 clock_time_t clock_time(void)
@@ -46,4 +46,17 @@ void clock_wait(clock_time_t t)
 		clock_time_t cur = clock_time();
 		while (cur == clock_time());
 	}
+}
+
+void clock_delay_usec(uint16_t dt)
+{
+	// loops = <us> * <cycles/us> * <cycles/loop>
+	// <cycles/loop> = 1 (cbz) + 1 (subs) + 1 (b) + 2 (pipeline refill)
+	uint32_t loops = dt * (MCK / 1000000) / 5;
+	asm volatile (
+		"1: cbz %0, 2f\n"
+		"   subs %0, #1\n"
+		"   b 1b\n"
+		"2:"
+		: "+r"(loops));
 }
