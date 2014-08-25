@@ -212,12 +212,12 @@ static void
 use_pll()
 {
    RCC->CFGR = (RCC_CFGR_MCO_NOCLOCK
-		| RCC_CFGR_PLLMULL12	/* PLL at 48MHz */
-//		| RCC_CFGR_PLLSRC	/* PLL runs on HSE */
+		| RCC_CFGR_PLLMULL6	/* PLL at 48MHz */
+		| RCC_CFGR_PLLSRC	/* PLL runs on HSE */
 		| RCC_CFGR_PPRE2_DIV1	/* APB2 at 48MHz */
 		| RCC_CFGR_PPRE1_DIV2	/* APB1 at 24MHz */
 		| RCC_CFGR_HPRE_DIV1	/* AHB at 48 MHz */
-//		| RCC_CFGR_USBPRE	/* USB clock at same speed as PLL */
+		| RCC_CFGR_USBPRE	/* USB clock at same speed as PLL */
 		);
    RCC->CR |= RCC_CR_PLLON;
    /* Wait for PLL */
@@ -239,7 +239,7 @@ sys_reset(void)
   copy_initialized();
   clear_bss();
   enable_fault_exceptions();
-//  start_hse_clock();
+  start_hse_clock();
   use_pll();
   main();
   while(1);
