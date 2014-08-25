@@ -58,20 +58,9 @@
 #elif defined(__MSP430__)
 #include <io.h>
 #elif PLATFORM_TYPE == HEXABUS_STM
+#include "sys/clock.h"
 #include "stm32l1xx.h"
-inline void delay_us(unsigned us)
-{
-	us *= MCK / 3 / 1000000;
-	asm volatile (
-		"1:			\n"
-		"	cmp %0, #0		\n"
-		"	beq.n 2f		\n"
-		"	sub %0, #1		\n"
-		"	b.n 1b		\n"
-		"2:"
-			: "+r"(us)
-		);
-}
+#define delay_us clock_delay_usec
 #endif
 
 #include "dev/leds.h"

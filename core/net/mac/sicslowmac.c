@@ -376,10 +376,6 @@ off(int keep_radio_on)
 static void
 init(void)
 {
-  extern void get_aes128key_from_eeprom(uint8_t*);
-  uint8_t aes_key[16];
-  get_aes128key_from_eeprom(aes_key);
-  rf230_key_setup(aes_key);
   mac_dsn = random_rand() % 256;
 
   NETSTACK_RADIO.on();
