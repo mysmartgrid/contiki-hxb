@@ -1,7 +1,7 @@
-# Default to STM32L1523RB
-SUBTARGET = 152RB
+# Default to STM32L152RB
+SUBTARGET ?= 152RB
 CFLAGS += -D STM32L1XX_MD
-
+OPT ?= s
 
 ### Code common for all ARM CPUs
 
@@ -42,10 +42,11 @@ ARCH_FLAGS= -march=armv7-m -mthumb
 
 CFLAGSNO = -I. -I$(CONTIKI)/core -I$(CONTIKI_CPU) ${addprefix -I,$(APPDIRS)} \
            -DWITH_UIP -DWITH_ASCII -DMCK=$(MCK) \
+           -fno-strict-aliasing \
            -ffunction-sections -fdata-sections \
            -Wall $(ARCH_FLAGS) -g
 
-CFLAGS  += $(CFLAGSNO) -O -DRUN_AS_SYSTEM -DROM_RUN
+CFLAGS  += $(CFLAGSNO) -O$(OPT) -DRUN_AS_SYSTEM -DROM_RUN
 LDFLAGS += $(ARCH_FLAGS) -L $(CONTIKI_CPU) -T $(LINKERSCRIPT) -nostartfiles -Wl,--gc-sections
 
 AROPTS = rcs
@@ -56,27 +57,6 @@ CDEPFLAGS = $(CFLAGS) -D __MAKING_DEPS__
 
 
 ### Setup directory search path for source files
-
-CUSTOM_RULE_C_TO_OBJECTDIR_O=yes
-CUSTOM_RULE_C_TO_O=yes
-
-%.o: %.c
-	$(TRACE_CC)
-	$(Q)$(CC) $(CFLAGS) $< -c
-
-$(OBJECTDIR)/%.o: %.c | $(OBJECTDIR)
-	$(TRACE_CC)
-	$(Q)$(CC) $(CFLAGS) -c $< -o $@
-
-
-CUSTOM_RULE_S_TO_OBJECTDIR_O = yes
-%.o: %.S
-	$(TRACE_CC)
-	$(Q)$(CC) $(CFLAGS) $< -c
-
-$(OBJECTDIR)/%.o: %.S | $(OBJECTDIR)
-	$(TRACE_CC)
-	$(Q)$(CC) $(CFLAGS) $< -c  -o $@
 
 %.bin: %.$(TARGET)
 	$(OBJCOPY) -O binary $< $@

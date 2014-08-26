@@ -55,17 +55,13 @@ SECTIONS
 	PROVIDE (end = .);
 
 	Main_Stack_Size = 0x00000200;
-	Process_Stack_Size = 0x00000200;
 
-	Stack_Size = Main_Stack_Size + Process_Stack_Size;
+	Stack_Size = Main_Stack_Size;
 	.stack ORIGIN(DATA) + LENGTH(DATA) - Stack_Size : {
 		_estack = .;
 		Main_Stack_Start = .;
 		. += Main_Stack_Size;
 		Main_Stack_End = .;
-		Process_Stack_Start = .;
-		. += Process_Stack_Size;
-		Process_Stack_End = .;
 		. = ALIGN(4);
 		__stack_end__ = .;
 		Top_Stack = .;
