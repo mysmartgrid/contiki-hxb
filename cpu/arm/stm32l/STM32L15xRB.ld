@@ -1,0 +1,8 @@
+MEMORY
+{
+	CODE (rx) : ORIGIN = 0x8000000, LENGTH = 128K
+	DATA (xrw) : ORIGIN = 0x20000000, LENGTH = 16K
+	EEP  (r) : ORIGIN = 0x8080000, LENGTH = 4K
+}
+
+INCLUDE "generic.ld"

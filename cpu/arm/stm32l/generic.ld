@@ -1,12 +1,3 @@
-MEMORY
-{
-	CODE (rx) : ORIGIN = 0x8000000, LENGTH = 128K
-	DATA (xrw) : ORIGIN = 0x20000000, LENGTH = 16K
-	EEP  (r) : ORIGIN = 0x8080000, LENGTH = 4K
-}
-
-/* Section Definitions */
-
 SECTIONS
 {
 	/* Make sure the vector table is at address 0 */
@@ -42,7 +33,6 @@ SECTIONS
 		_edata = . ;
 	} >DATA AT>CODE
 
-	/* .bss section which is used for uninitialized data */
 	.bss : {
 		_bss = .;
 		*(.bss .bss.*)
