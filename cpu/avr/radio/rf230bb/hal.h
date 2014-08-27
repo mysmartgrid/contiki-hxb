@@ -197,19 +197,19 @@
 
 #   define SPIPORT    A
 #   define SPIPERIPH  SPI1
-#   define SSPIN      1
-#   define MOSIPIN    12
-#   define MISOPIN    11
+#   define MOSIPIN    7
+#   define MISOPIN    6
 #   define SCKPIN     5
-#   define RSTPORT    C
-#   define RSTPIN     1
-#   define SLPTRPORT  C
-#   define SLPTRPIN   2
-#   define IRQNUM     9
+#   define SSPIN      4
+#   define RSTPORT    B
+#   define RSTPIN     10
+#   define SLPTRPORT  B
+#   define SLPTRPIN   1
+#   define IRQNUM     23
 #   define IRQPORT    C
 #   define IRQEXTIL   2
-#   define IRQPIN     3
-#   define RADIO_VECT EXTI3_IRQHandler
+#   define IRQPIN     5
+#   define RADIO_VECT EXTI9_5_IRQHandler
 
 #else
 
