@@ -1727,15 +1727,15 @@ typedef struct uip_ext_hdr {
 
 /* Tag-length-value part for router alert option */
 typedef struct uip_ext_hdr_rtr_alert_tlv {
-  u8_t tag;
-  u8_t len;
-  u16_t value;
+  uint8_t tag;
+  uint8_t len;
+  uint16_t value;
 } uip_ext_hdr_rtr_alert_tlv;
 
 /* Tag-length-value part for PadN option */
 typedef struct uip_ext_hdr_padn_tlv {
-  u8_t tag;
-  u8_t len;
+  uint8_t tag;
+  uint8_t len;
   /* remaining bytes are implied by length */
 } uip_ext_hdr_padn_tlv;
 

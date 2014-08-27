@@ -111,8 +111,8 @@ typedef struct uip_icmp6_error{
 
 /** \brief MLDv1 ICMP packet content */
 typedef struct uip_icmp6_mld1 {
-  u16_t maximum_delay;
-  u16_t reserved;
+  uint16_t maximum_delay;
+  uint16_t reserved;
   uip_ip6addr_t address;
 } uip_icmp6_mld1;
 
