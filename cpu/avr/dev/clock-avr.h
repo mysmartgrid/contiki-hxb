@@ -83,7 +83,7 @@
 */
 
 //Use Timer2 for HEXABUS_SOCKET because Timer0 is used for PWM
-#if RAVEN_REVISION == HEXABUS_SOCKET
+#if PLATFORM_TYPE == HEXABUS_SOCKET
 #define AVR_OUTPUT_COMPARE_INT TIMER2_COMPA_vect
 #define OCRSetup() \
   /* Select internal clock */ \
